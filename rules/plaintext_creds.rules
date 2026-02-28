@@ -1,0 +1,111 @@
+# Innsmouth NIDS - Reglas de Detección de Credenciales en Texto Plano
+
+# =====================
+# HTTP Plaintext Creds
+# =====================
+
+# Detectar username/password en POST HTTP
+alert http any any -> any any (msg:"INNSMOUTH HTTP POST Plaintext Credentials"; \
+  flow:to_server; http.method; content:"POST"; \
+  http.uri; content:"login"; nocase; \
+  http.request_body; content:"username="; nocase; \
+  http.request_body; content:"password="; nocase; \
+  classtype:attempted-user; sid:1000201; rev:1;)
+
+# Detectar Basic Authentication
+alert http any any -> any any (msg:"INNSMOUTH HTTP Basic Auth Detected"; \
+  http.header; content:"Authorization|3A| Basic"; nocase; \
+  classtype:attempted-user; sid:1000202; rev:1;)
+
+# Detectar Bearer Token mal usado
+alert http any any -> any any (msg:"INNSMOUTH HTTP Bearer Token Exposed"; \
+  http.header; content:"Authorization|3A| Bearer"; \
+  http.header; content:"eyJ"; nocase; \
+  classtype:attempted-user; sid:1000203; rev:1;)
+
+# Detectar API Key en URL
+alert http any any -> any any (msg:"INNSMOUTH HTTP API Key in URL"; \
+  http.uri; content:"api_key="; nocase; \
+  http.uri; content:"apikey="; nocase; \
+  classtype:attempted-user; sid:1000204; rev:1;)
+
+# Detectar password en query string
+alert http any any -> any any (msg:"INNSMOUTH HTTP Password in Query String"; \
+  http.uri; content:"password="; nocase; \
+  classtype:attempted-user; sid:1000205; rev:1;)
+
+# =====================
+# FTP Plaintext Creds
+# =====================
+
+# Detectar USER command en FTP
+alert tcp any any -> any 21 (msg:"INNSMOUTH FTP User Command Detected"; \
+  content:"USER"; nocase; \
+ classtype:attempted-user; sid:1000210; rev:1;)
+
+# Detectar PASS command en FTP
+alert tcp any any -> any 21 (msg:"INNSMOUTH FTP Password Detected"; \
+  content:"PASS"; nocase; \
+  classtype:attempted-user; sid:1000211; rev:1;)
+
+# Detectar autenticación FTP exitosa
+alert tcp any any -> any 21 (msg:"INNSMOUTH FTP Login Success"; \
+  content:"230"; content:"User logged in"; \
+  classtype:successful-user; sid:1000212; rev:1;)
+
+# =====================
+# SMTP Plaintext Creds
+# =====================
+
+# Detectar AUTH LOGIN en SMTP
+alert tcp any any -> any 25 (msg:"INNSMOUTH SMTP AUTH LOGIN Detected"; \
+  content:"AUTH LOGIN"; nocase; \
+  classtype:attempted-user; sid:1000220; rev:1;)
+
+# Detectar credenciales en SMTP AUTH
+alert tcp any any -> any 25 (msg:"INNSMOUTH SMTP Credentials Detected"; \
+  content:"AUTH PLAIN"; nocase; \
+  classtype:attempted-user; sid:1000221; rev:1;)
+
+# =====================
+# Telnet Plaintext
+# =====================
+
+# Detectar sesión Telnet (sin encryption)
+alert tcp any any -> any 23 (msg:"INNSMOUTH Telnet Session Detected"; \
+  flow:to_server; \
+  classtype:attempted-user; sid:1000230; rev:1;)
+
+# Detectar comando de login en Telnet
+alert tcp any any -> any 23 (msg:"INNSMOUTH Telnet Login Detected"; \
+  content:"login"; nocase; pcre:"/^\\r\\n/si"; \
+  classtype:attempted-user; sid:1000231; rev:1;)
+
+# =====================
+# SSH Keys Exposure
+# =====================
+
+# Detectar Private Key SSH
+alert http any any -> any any (msg:"INNSMOUTH SSH Private Key Detected"; \
+  http.response_body; content:"-----BEGIN OPENSSH PRIVATE KEY-----"; \
+  classtype:attempted-user; sid:1000240; rev:1;)
+
+# Detectar RSA Private Key
+alert http any any -> any any (msg:"INNSMOUTH RSA Private Key Detected"; \
+  http.response_body; content:"-----BEGIN RSA PRIVATE KEY-----"; \
+  classtype:attempted-user; sid:1000241; rev:1;)
+
+# Detectar AWS Keys en URL
+alert http any any -> any any (msg:"INNSMOUTH AWS Access Key Detected"; \
+  http.uri; pcre:"/(?:A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}/"; \
+  classtype:attempted-user; sid:1000242; rev:1;)
+
+# Detectar GitHub Token
+alert http any any -> any any (msg:"INNSMOUTH GitHub Token Detected"; \
+  http.uri; content:"ghp_"; \
+  classtype:attempted-user; sid:1000243; rev:1;)
+
+# Detectar Generic API Token
+alert http any any -> any any (msg:"INNSMOUTH Generic API Token Detected"; \
+  http.uri; pcre:"/(?:token|key|secret)=[a-zA-Z0-9_-]{20,}/i"; \
+  classtype:attempted-user; sid:1000244; rev:1;)

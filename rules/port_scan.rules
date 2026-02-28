@@ -1,0 +1,39 @@
+# Innsmouth NIDS - Reglas de Detección Suricata
+
+## Port Scan Detection Rules
+
+# Detectar escaneo SYN (SYN flood)
+alert tcp any any -> any any (msg:"INNSMOUTH Port Scan SYN Detected"; \
+  flags:S; threshold: type both, count 50, seconds 10; \
+  classtype:attempted-recon; sid:1000101; rev:1;)
+
+# Detectar escaneo de puertos comunes
+alert tcp any any -> any any (msg:"INNSMOUTH Common Port Scan Detected"; \
+  flow:to_server; detection_filter:track by_src, count 20, seconds 30; \
+  classtype:attempted-recon; sid:1000102; rev:1;)
+
+# Detectar escaneo FIN
+alert tcp any any -> any any (msg:"INNSMOUTH FIN Scan Detected"; \
+  flags:F; classtype:attempted-recon; sid:1000103; rev:1;)
+
+# Detectar escaneo XMAS
+alert tcp any any -> any any (msg:"INNSMOUTH XMAS Scan Detected"; \
+  flags:FPU; classtype:attempted-recon; sid:1000104; rev:1;)
+
+# Detectar escaneo NULL
+alert tcp any any -> any any (msg:"INNSMOUTH NULL Scan Detected"; \
+  flags:0; classtype:attempted-recon; sid:1000105; rev:1;)
+
+# Detectar escaneo UDP
+alert udp any any -> any any (msg:"INNSMOUTH UDP Scan Detected"; \
+  threshold: type both, count 30, seconds 10; \
+  classtype:attempted-recon; sid:1000106; rev:1;)
+
+# Detectar escaneo de servicios específicos
+alert tcp any any -> any 22 (msg:"INNSMOUTH SSH Scan Detected"; \
+  threshold: type both, count 5, seconds 60; \
+  classtype:attempted-recon; sid:1000107; rev:1;)
+
+alert tcp any any -> any 3389 (msg:"INNSMOUTH RDP Scan Detected"; \
+  threshold: type both, count 5, seconds 60; \
+  classtype:attempted-recon; sid:1000108; rev:1;)

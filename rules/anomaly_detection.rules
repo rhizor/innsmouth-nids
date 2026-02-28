@@ -1,0 +1,128 @@
+# Innsmouth NIDS - Reglas de Detección de Anomalías
+
+# =====================
+# Anomalías de Tráfico
+# =====================
+
+# Detectar tráfico ICMP extraño (posible ping sweep)
+alert icmp any any -> any any (msg:"INNSMOUTH ICMP Ping Sweep Detected"; \
+  itype:8; threshold: type both, count 50, seconds 10; \
+  classtype:attempted-recon; sid:1000301; rev:1;)
+
+# Detectar Large ICMP packets (posible exfiltración)
+alert icmp any any -> any any (msg:"INNSMOUTH Large ICMP Packet Detected"; \
+  dsize:>1000; classtype:attempted-recon; sid:1000302; rev:1;)
+
+# Detectar tráfico en puertos no comunes
+alert tcp any any -> any !80,!443,!22,!21,!25,!53,!3306,!3389 (msg:"INNSMOUTH Uncommon Port Traffic"; \
+  threshold: type both, count 100, seconds 60; \
+  classtype:attempted-recon; sid:1000303; rev:1;)
+
+# Detectar DNS tunneling potencial
+alert dns any any -> any any (msg:"INNSMOUTH DNS Tunneling Potential"; \
+  dns.query; content:"."; depth:1; \
+  threshold: type both, count 50, seconds 30; \
+  classtype:attempted-recon; sid:1000304; rev:1;)
+
+# Detectar DNS sobre puerto no estándar
+alert udp any any -> any !53 (msg:"INNSMOUTH Non-Standard DNS Port"; \
+  content:"|01 00 00 01 00 00 00 00 00 00|"; depth:10; \
+  classtype:attempted-recon; sid:1000305; rev:1;)
+
+# =====================
+# Comportamiento Sospechoso
+# =====================
+
+# Detectar posible 데이터 exfiltración (alto volumen saliente)
+alert tcp any any -> any any (msg:"INNSMOUTH High Outbound Traffic Detected"; \
+  flow:to_server; \
+  threshold: type both, count 10000, seconds 60; \
+  classtype:attempted-dos; sid:1000310; rev:1;)
+
+# Detectar conexión a IP conocida maliciosa (ejemplo - actualizar con IoC)
+alert tcp any any -> any any (msg:"INNSMOUTH Known Malicious IP Connection"; \
+  dst: 185.220.101.0/24; \
+  classtype:trojan-activity; sid:1000311; rev:1;)
+
+# Detectar Beaconing (conexiones periódicas - requiere machine learning)
+alert tcp any any -> any any (msg:"INNSMOUTH Potential Beaconing Detected"; \
+  flow:to_server; \
+  threshold: type threshold, track by_src, count 30, seconds 60; \
+  classtype:attempted-recon; sid:1000312; rev:1;)
+
+# Detectar cleartext protocols en puertos inusuales
+alert tcp any any -> any 80 (msg:"INNSMOUTH HTTP on Non-Standard Port"; \
+  flow:to_server; \
+  classtype:attempted-recon; sid:1000313; rev:1;)
+
+# =====================
+# Detección de Protocolos Anómalos
+# =====================
+
+# Detectar HTTP en puerto HTTPS
+alert tcp any any -> any 443 (msg:"INNSMOUTH HTTP Traffic on HTTPS Port"; \
+  flow:to_server; http.protocol; content:"HTTP/"; \
+  classtype:attempted-recon; sid:1000320; rev:1;)
+
+# Detectar SMB sobre TCP/IP (WannaCry vector)
+alert tcp any any -> any 445 (msg:"INNSMOUTH SMB Traffic Detected"; \
+  flow:to_server; \
+  classtype:attempted-recon; sid:1000321; rev:1;)
+
+# Detectar RDP desde internet
+alert tcp any any -> any 3389 (msg:"INNSMOUTH Public RDP Connection"; \
+  flow:to_server; \
+  classtype:attempted-recon; sid:1000322; rev:1;)
+
+# Detectar VNC
+alert tcp any any -> any 5900 (msg:"INNSMOUTH VNC Traffic Detected"; \
+  flow:to_server; \
+  classtype:attempted-recon; sid:1000323; rev:1;)
+
+# =====================
+# Detección de Malware
+# =====================
+
+# Detectar solicitud de C2 (ejemplo - comando whoami)
+alert http any any -> any any (msg:"INNSMOUTH Potential C2 Whoami Request"; \
+  http.uri; content:"whoami"; nocase; \
+  classtype:trojan-activity; sid:1000330; rev:1;)
+
+# Detectar request a dominio sospechoso (.tk, .ml, etc)
+alert http any any -> any any (msg:"INNSMOUTH Suspicious TLD Request"; \
+  http.host; content:".tk"; nocase; \
+  classtype:trojan-activity; sid:1000331; rev:1;)
+
+alert http any any -> any any (msg:"INNSMOUTH Suspicious TLD Request"; \
+  http.host; content:".ml"; nocase; \
+  classtype:trojan-activity; sid:1000332; rev:1;)
+
+alert http any any -> any any (msg:"INNSMOUTH Suspicious TLD Request"; \
+  http.host; content:".ga"; nocase; \
+  classtype:trojan-activity; sid:1000333; rev:1;)
+
+# Detectar posible tráfico de ransomware
+alert http any any -> any any (msg:"INNSMOUTH Ransomware Extension Detected"; \
+  http.uri; pcre:"/\\.(locked|encrypted|crypt|ransom)/i"; \
+  classtype:trojan-activity; sid:1000334; rev:1;)
+
+# =====================
+# Detección de Escaneo
+# =====================
+
+# Detectar HTTP enumeration
+alert http any any -> any any (msg:"INNSMOUTH HTTP Enum Detected"; \
+  http.method; content:"OPTIONS"; \
+  threshold: type both, count 20, seconds 30; \
+  classtype:attempted-recon; sid:1000340; rev:1;)
+
+# Detectar WordPress login scan
+alert http any any -> any any (msg:"INNSMOUTH WordPress Login Scan"; \
+  http.uri; content:"wp-login"; nocase; \
+  threshold: type both, count 10, seconds 60; \
+  classtype:attempted-recon; sid:1000341; rev:1;)
+
+# Detectar Apache/Nginx directory enumeration
+alert http any any -> any any (msg:"INNSMOUTH Directory Enumeration"; \
+  http.uri; pcre:"/\\/(admin|phpmyadmin|backup|db|upload)\\//i"; \
+  classtype:attempted-recon; sid:1000342; rev:1;)
